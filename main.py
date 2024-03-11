@@ -45,11 +45,11 @@ def generate_scenario(seed) -> str:
     if not context:
         st.error("Please describe the context of use")
     if user_desc and app_desc and context:
-        message_parts.append("The main user is described as following: %s" % user_desc)
+        message_parts.append("The user is described as following: %s" % user_desc)
         message_parts.append("The application solves the problem: %s" % problem)
         message_parts.append("The application description: %s" % app_desc)
         message_parts.append("The contect of use: %s" % context)
-        message_parts.append("Use numbered list to describe the steps in scenario.")
+        message_parts.append("Use numbered list to describe the steps in scenario. Focus on interaction between the user and the application.")
         messages=[
             {"role": "system", "content": "You are a UX design assistant, helping to create use cases and storyboards."},
             {"role": "user", "content": "\n".join(message_parts)}
@@ -63,9 +63,9 @@ def generate_scenario(seed) -> str:
 def generate_image(prompt:str):
     client = OpenAI(api_key=openai_api_key)
     response = client.images.generate(
-        model="dall-e-3",
+        model="dall-e-2",
         prompt=prompt,
-        size="1024x1024",
+        size="256x256",
         quality="standard",
         n=1,
     )
@@ -92,7 +92,7 @@ def generate_storyboard(seed):
         return storyboard
     steps = extract_numerated_list(data["scenario"])
     for step in steps:
-        prompt = "Scematic illustration of a step in a storyboard: %s" % step
+        prompt = "Sketch of a step in a use case of an application: %s. Stick figure style." % step
         img_url = generate_image(prompt)
         storyboard.append({"desc": step, "url": img_url})
     return storyboard
@@ -130,7 +130,7 @@ def storyboard_preview():
         data["storyboard"] = generate_storyboard(seed)
     if "storyboard" in data:
         for step in data["storyboard"]:
-            st.image(step["url"], caption=step["desc"], width=512)
+            st.image(step["url"], caption=step["desc"], width=256)
 
 
 with st.container():
