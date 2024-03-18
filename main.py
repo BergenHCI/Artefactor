@@ -10,15 +10,24 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded")
 
+_system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
+_system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
+
+_prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
+_prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
+_prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
+_prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
+
+
 
 # prompts
-system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
-system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
+system_msg_use_cases = _system_msg_use_cases
+system_msg_user_stories = _system_msg_user_stories
 
-prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
-prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
-prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
-prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
+prompt_storyboard = _prompt_storyboard
+prompt_user_stories = _prompt_user_stories
+prompt_use_case = _prompt_use_case
+prompt_use_case_2 = _prompt_use_case_2
 
 
 with st.expander("AI settings"):
@@ -38,12 +47,12 @@ def new_data():
     data["scenario"] = ""
     data["storyboard"] = [] # ["desc": "Verbal description of what is happening", "url": "https"]
     st.session_state.data = data
-    system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
-    system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
-    prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
-    prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
-    prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
-    prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
+    system_msg_use_cases = _system_msg_use_cases
+    system_msg_user_stories = _system_msg_user_stories
+    prompt_storyboard = _prompt_storyboard
+    prompt_user_stories = _prompt_user_stories
+    prompt_use_case = _prompt_use_case
+    prompt_use_case_2 = _prompt_use_case_2
 
 
 def extract_numerated_list(text:str) -> list:
