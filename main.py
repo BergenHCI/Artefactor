@@ -11,12 +11,39 @@ st.set_page_config(
     initial_sidebar_state="expanded")
 
 
+# prompts
+system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
+system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
+
+prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
+prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
+prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
+prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
+
+
+with st.expander("AI settings"):
+    system_msg_use_cases = st.text_input("Use cases GPT instruction", system_msg_use_cases)
+    prompt_use_case = st.text_input("Use cases prompt start", prompt_use_case)
+    prompt_use_case_2 = st.text_input("Use case prompt end", prompt_use_case_2)
+    system_msg_user_stories = st.text_input("User stories GPT instruction", system_msg_user_stories)
+    prompt_user_stories = st.text_input("User stories prompt", prompt_user_stories)
+    prompt_storyboard = st.text_input("Storyboard prompt", prompt_storyboard)    
+    gpt_model = st.selectbox("GPT Model", ("gpt-3.5-turbo", "gpt-4-0125-preview"))
+
+
+
 def new_data():
     data = {}
     data["app"] = {}
     data["scenario"] = ""
     data["storyboard"] = [] # ["desc": "Verbal description of what is happening", "url": "https"]
     st.session_state.data = data
+    system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
+    system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
+    prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
+    prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
+    prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
+    prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
 
 
 def extract_numerated_list(text:str) -> list:
@@ -50,7 +77,7 @@ def get_client():
 def generate_scenario(seed) -> str:
     data = st.session_state.data
     client = get_client()
-    message_parts = ["Create a realistic use case for the use of an application based on the following data:"]
+    message_parts = [prompt_use_case]
     user_desc = data["app"].get("user_desc")
     app_desc = data["app"].get("app_desc")
     problem = data["app"].get("problem")
@@ -68,12 +95,12 @@ def generate_scenario(seed) -> str:
         message_parts.append("The application solves the problem: %s" % problem)
         message_parts.append("The application description: %s" % app_desc)
         message_parts.append("The contect of use: %s" % context)
-        message_parts.append("Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application.")
+        message_parts.append(prompt_use_case_2)
         messages=[
-            {"role": "system", "content": "You are a UX design assistant, helping to create use cases and storyboards."},
+            {"role": "system", "content": system_msg_use_cases},
             {"role": "user", "content": "\n".join(message_parts)}
         ]
-        response = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        response = client.chat.completions.create(model=gpt_model, messages=messages)
         msg = response.choices[0].message.content
         return msg
     return ""
@@ -100,7 +127,7 @@ def generate_user_stories(seed) -> list:
         return []
     client = get_client()
     if scenario:
-        message_parts = ["Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"]
+        message_parts = [prompt_user_stories]
         user_desc = data["app"].get("user_desc")
         app_desc = data["app"].get("app_desc")
         problem = data["app"].get("problem")
@@ -109,13 +136,13 @@ def generate_user_stories(seed) -> list:
         if problem: message_parts.append("The application solves the problem: %s" % problem)
         if app_desc: message_parts.append("The application description: %s" % app_desc)
         if context: message_parts.append("The contect of use: %s" % context)
-        message_parts.append("The suggests scenario of use: %s" % scenario)
+        message_parts.append("The suggested scenario of use: %s" % scenario)
         message_parts.append("Use numbered list for user stories.")
         messages=[
-            {"role": "system", "content": "You are a UX design assistant, helping to create user stories"},
+            {"role": "system", "content": system_msg_user_stories},
             {"role": "user", "content": "\n".join(message_parts)}
         ]
-        response = client.chat.completions.create(model="gpt-3.5-turbo", messages=messages)
+        response = client.chat.completions.create(model=gpt_model, messages=messages)
         msg = response.choices[0].message.content
         return msg
     return ""
@@ -132,7 +159,8 @@ def generate_storyboard(seed):
         return storyboard
     steps = extract_numerated_list(data["scenario"])
     for step in steps:
-        prompt = "Sketch of a step in a use case of an application: %s. Stick figure style." % step
+        prompt = prompt_storyboard
+        prompt += step
         img_url = generate_image(prompt)
         storyboard.append({"desc": step, "url": img_url})
     return storyboard
