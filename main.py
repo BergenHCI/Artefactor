@@ -13,12 +13,18 @@ st.set_page_config(
 _system_msg_use_cases = "You are a UX design assistant, helping to create use cases and storyboards."
 _system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
 
-_prompt_storyboard = "Sketch of a step in a use case of an application in a stick figure style: "
+_prompt_storyboard = "Create a visual depiction of a step in the use case scenario, suitable for a storyboard. Use semi-realistic style. The step description is the following:"
 _prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
 _prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
-_prompt_use_case_2 = "Create a use case scenario of 5 or less steps. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
+_prompt_use_case_2 = "Create a use case scenario. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
 
+_prompt_for_dalle = """
+You are creating a storyboard for an application based on the following use-case scenario:
 
+{scenario}
+
+For each step in the scenario, create a prompt for dall-e to generate a frame of a storyboard. In each step, include context, so dall-e would understand, what is needed. Return a numbered list of prompts without additional comments.
+"""
 
 # prompts
 system_msg_use_cases = _system_msg_use_cases
@@ -55,15 +61,19 @@ def new_data():
     prompt_use_case_2 = _prompt_use_case_2
 
 
-def extract_numerated_list(text:str) -> list:
-    # Regular expression to match numerated list items: 
-    # It looks for lines starting with one or more digits followed by a period.
-    pattern = re.compile(r'\b\d+\.\s*(.*)')
+def extract_numerated_list(text:str):
+    # Regular expression to match numerated list items:
+    # Look for lines starting with one or more digits followed by a period and a space.
+    # Use lookahead to ensure we match until the next start of a list item or the end of the text.
+    pattern = re.compile(r'(\d+\.\s)(.*?)(?=\n\d+\.|\Z)', re.DOTALL)
     # Find all matches in the text
     matches = pattern.findall(text)
     if not matches:
-        st.error("Can not parse the use case scenario")
-    return matches
+        st.error("Can't extract list")
+        st.stop()
+    # Extract the text of each match
+    list_items = ["".join(match[1]).strip() for match in matches]
+    return list_items
 
 
 with st.sidebar:
@@ -115,12 +125,24 @@ def generate_scenario(seed) -> str:
     return ""
 
 
+def generate_dalle_prompts(scenario:str):
+    template = _prompt_for_dalle
+    client = get_client()
+    messages=[
+            {"role": "system", "content": system_msg_use_cases},
+            {"role": "user", "content": template.format(scenario = scenario)}
+        ]
+    response = client.chat.completions.create(model=gpt_model, messages=messages)
+    msg = response.choices[0].message.content
+    return extract_numerated_list(msg)
+
+
 def generate_image(prompt:str):
     client = get_client()
     response = client.images.generate(
-        model="dall-e-3",
+        model="dall-e-2",
         prompt=prompt,
-        size="1024x1024",
+        size="512x512",
         quality="standard",
         n=1,
     )
@@ -166,12 +188,12 @@ def generate_storyboard(seed):
     if not scenario:
         st.error("No scenario")
         return storyboard
-    steps = extract_numerated_list(data["scenario"])
+    # get prompts for dall-e
+    steps = generate_dalle_prompts(data["scenario"])
+    # steps = extract_numerated_list(data["scenario"])
     for step in steps:
-        prompt = prompt_storyboard
-        prompt += step
-        img_url = generate_image(prompt)
-        storyboard.append({"desc": step, "url": img_url})
+        img_url = generate_image(step)
+        storyboard.append({"desc": "", "url": img_url})
     return storyboard
 
 
