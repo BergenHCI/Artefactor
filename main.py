@@ -2,6 +2,8 @@ import streamlit as st
 import hashlib
 from openai import OpenAI
 import re
+import copy
+import math
 
 
 st.set_page_config(
@@ -211,7 +213,6 @@ def scenario_editor():
 
 
 def scenario_preview():
-    # st.header("Scenario")
     data = st.session_state.data
     if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
@@ -223,14 +224,24 @@ def scenario_preview():
         st.write(data["scenario"])
 
 def storyboard_preview():
-    # st.header("Storyboard")
     data = st.session_state.data
     if st.button("Generate storyboard"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["storyboard"] = generate_storyboard(seed)
     if "storyboard" in data:
-        for step in data["storyboard"]:
-            st.image(step["url"], caption=step["desc"], width=512)
+        storyboard = copy.deepcopy(data["storyboard"])
+        steps_count = len(storyboard)
+        if steps_count % 3 == 0:
+            columns = 3
+        else:
+            columns = 4
+        rows = math.ceil(steps_count / columns)
+        for row in range(rows):
+            for c in st.columns(columns):
+                with c:
+                    step = storyboard and storyboard.pop(0) or None
+                    if step:
+                        st.image(step["url"], caption=step["desc"])
 
 def userstory_preview():
     data = st.session_state.data
