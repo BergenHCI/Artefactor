@@ -25,7 +25,9 @@ You are creating a storyboard for an application based on the following use-case
 
 {scenario}
 
-For each step in the scenario, create a prompt for dall-e to generate a frame of a storyboard. In each step, include context, so dall-e would understand, what is needed. Return a numbered list of prompts without additional comments.
+For each step in the scenario, create a prompt for dall-e to generate a frame of a storyboard.
+In each step, include context, so dall-e would understand, what is needed.
+Return a numbered list of prompts without additional comments.
 """
 
 # prompts
