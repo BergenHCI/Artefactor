@@ -16,42 +16,52 @@ _system_msg_use_cases = "You are a UX design assistant, helping to create use ca
 _system_msg_user_stories = "You are a UX design assistant, helping to create user stories"
 
 _prompt_storyboard = "Create a visual depiction of a step in the use case scenario, suitable for a storyboard. Use semi-realistic style. The step description is the following:"
-_prompt_user_stories = "Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:"
-_prompt_use_case = "Create a realistic use case for the use of an application based on the following data:"
-_prompt_use_case_2 = "Create a use case scenario. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."
 
-_prompt_for_dalle = """
-You are creating a storyboard for an application based on the following use-case scenario:
+
+_user_stories_prompt = """Create user stories following the template “As a [persona], I [want to], [so that].” based on the following:
+
+The user is described as following: {user}
+The application solves the problem: {problem}
+The application description: {application}
+The contect of use: {context}
+The suggested scenario of use:
+{scenario}
+
+Use numbered list for user stories."""
+
+
+_scenario_prompt = """Create a realistic use case for the use of an application based on the following data:
+
+The user is described as following: {user}
+The application solves the problem: {problem}
+The application description: {application}
+The context of use: {context}
+
+Create a use case scenario. Use numbered list to describe the steps in scenario. Describe each step in one sentence. Focus on interaction between the user and the application."""
+
+_dalle_prompt = """You are creating a storyboard for an application based on the following use-case scenario:
 
 {scenario}
 
 For each step in the scenario, create a prompt for dall-e to generate a frame of a storyboard.
 In each step, include context, so dall-e would understand, what is needed.
-Return a numbered list of prompts without additional comments.
-"""
+Return a numbered list of prompts without additional comments."""
 
 # prompts
 system_msg_use_cases = _system_msg_use_cases
 system_msg_user_stories = _system_msg_user_stories
 
 prompt_storyboard = _prompt_storyboard
-prompt_user_stories = _prompt_user_stories
-prompt_use_case = _prompt_use_case
-prompt_use_case_2 = _prompt_use_case_2
 
 
-with st.expander("AI settings"):
-    system_msg_use_cases = st.text_input("Use cases GPT instruction", system_msg_use_cases)
-    prompt_use_case = st.text_input("Use cases prompt start", prompt_use_case)
-    prompt_use_case_2 = st.text_input("Use case prompt end", prompt_use_case_2)
-    system_msg_user_stories = st.text_input("User stories GPT instruction", system_msg_user_stories)
-    prompt_user_stories = st.text_input("User stories prompt", prompt_user_stories)
-    prompt_storyboard = st.text_input("Storyboard prompt", prompt_storyboard)    
-    gpt_model = st.selectbox("GPT Model", ("gpt-3.5-turbo", "gpt-4-0125-preview"))
+gpt_model = "gpt-4-turbo-preview"
+
+user_stories_prompt = _user_stories_prompt
+scenario_prompt = _scenario_prompt
+dalle_prompt = _dalle_prompt
 
 
-
-def new_data():
+def reset_data():
     data = {}
     data["app"] = {}
     data["scenario"] = ""
@@ -59,10 +69,17 @@ def new_data():
     st.session_state.data = data
     system_msg_use_cases = _system_msg_use_cases
     system_msg_user_stories = _system_msg_user_stories
-    prompt_storyboard = _prompt_storyboard
-    prompt_user_stories = _prompt_user_stories
-    prompt_use_case = _prompt_use_case
-    prompt_use_case_2 = _prompt_use_case_2
+    dalle_prompt = _dalle_prompt
+    scenario_prompt = _scenario_prompt
+    user_stories_prompt = _user_stories_prompt
+
+
+with st.expander("AI settings"):
+    system_msg_use_cases = st.text_input("Use cases GPT instruction", system_msg_use_cases)
+    system_msg_user_stories = st.text_input("User stories GPT instruction", system_msg_user_stories)
+    scenario_prompt = st.text_area("Scenario prompt", scenario_prompt, 5)
+    dalle_prompt = st.text_area("Dall-E prompt", dalle_prompt, 5)
+    user_stories_prompt = st.text_area("User stories prompt", user_stories_prompt, 5)
 
 
 def extract_numerated_list(text:str):
@@ -84,7 +101,7 @@ with st.sidebar:
     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
     "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
     if st.button("Clear data"):
-        new_data()
+        reset_data()
         st.rerun()
 
 @st.cache_resource
@@ -100,7 +117,6 @@ def get_client():
 def generate_scenario(seed) -> str:
     data = st.session_state.data
     client = get_client()
-    message_parts = [prompt_use_case]
     user_desc = data["app"].get("user_desc")
     app_desc = data["app"].get("app_desc")
     problem = data["app"].get("problem")
@@ -114,14 +130,12 @@ def generate_scenario(seed) -> str:
     if not context:
         st.error("Please describe the context of use")
     if user_desc and app_desc and context:
-        message_parts.append("The user is described as following: %s" % user_desc)
-        message_parts.append("The application solves the problem: %s" % problem)
-        message_parts.append("The application description: %s" % app_desc)
-        message_parts.append("The contect of use: %s" % context)
-        message_parts.append(prompt_use_case_2)
+        message = scenario_prompt.format(
+            user = user_desc, problem = problem, application = app_desc, context = context
+        )
         messages=[
             {"role": "system", "content": system_msg_use_cases},
-            {"role": "user", "content": "\n".join(message_parts)}
+            {"role": "user", "content": message}
         ]
         response = client.chat.completions.create(model=gpt_model, messages=messages)
         msg = response.choices[0].message.content
@@ -130,11 +144,10 @@ def generate_scenario(seed) -> str:
 
 
 def generate_dalle_prompts(scenario:str):
-    template = _prompt_for_dalle
     client = get_client()
     messages=[
             {"role": "system", "content": system_msg_use_cases},
-            {"role": "user", "content": template.format(scenario = scenario)}
+            {"role": "user", "content": dalle_prompt.format(scenario = scenario)}
         ]
     response = client.chat.completions.create(model=gpt_model, messages=messages)
     msg = response.choices[0].message.content
@@ -161,26 +174,23 @@ def generate_user_stories(seed) -> list:
         st.error("Generate scenario first")
         return []
     client = get_client()
-    if scenario:
-        message_parts = [prompt_user_stories]
-        user_desc = data["app"].get("user_desc")
-        app_desc = data["app"].get("app_desc")
-        problem = data["app"].get("problem")
-        context = data["app"].get("use_context")
-        if user_desc: message_parts.append("The user is described as following: %s" % user_desc)
-        if problem: message_parts.append("The application solves the problem: %s" % problem)
-        if app_desc: message_parts.append("The application description: %s" % app_desc)
-        if context: message_parts.append("The contect of use: %s" % context)
-        message_parts.append("The suggested scenario of use: %s" % scenario)
-        message_parts.append("Use numbered list for user stories.")
-        messages=[
-            {"role": "system", "content": system_msg_user_stories},
-            {"role": "user", "content": "\n".join(message_parts)}
-        ]
-        response = client.chat.completions.create(model=gpt_model, messages=messages)
-        msg = response.choices[0].message.content
-        return msg
-    return ""
+
+    user_desc = data["app"].get("user_desc", "")
+    app_desc = data["app"].get("app_desc", "")
+    problem = data["app"].get("problem", "")
+    context = data["app"].get("use_context", "")
+    user_stories_prompt = _user_stories_prompt
+
+    message = user_stories_prompt.format(
+        user = user_desc, problem = problem, application = app_desc, context = context, scenario = scenario
+    )
+    messages=[
+        {"role": "system", "content": system_msg_user_stories},
+        {"role": "user", "content": message}
+    ]
+    response = client.chat.completions.create(model=gpt_model, messages=messages)
+    msg = response.choices[0].message.content
+    return msg
 
 
 @st.cache_data(show_spinner="Generating..")
@@ -202,7 +212,7 @@ def generate_storyboard(seed):
 
 
 if "data" not in st.session_state:
-    new_data()
+    reset_data()
 
 
 def scenario_editor():
@@ -238,7 +248,7 @@ def storyboard_preview():
         else:
             columns = 4
         rows = math.ceil(steps_count / columns)
-        for row in range(rows):
+        for _ in range(rows):
             for c in st.columns(columns):
                 with c:
                     step = storyboard and storyboard.pop(0) or None
