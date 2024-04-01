@@ -1,9 +1,10 @@
 import streamlit as st
 import hashlib
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 import re
 import copy
 import math
+import backoff
 
 
 st.set_page_config(
@@ -154,12 +155,13 @@ def generate_dalle_prompts(scenario:str):
     return extract_numerated_list(msg)
 
 
+@backoff.on_exception(backoff.expo, RateLimitError, max_tries=5, max_time=70)
 def generate_image(prompt:str):
     client = get_client()
     response = client.images.generate(
-        model="dall-e-2",
+        model="dall-e-3",
         prompt=prompt,
-        size="512x512",
+        size="1024x1024",
         quality="standard",
         n=1,
     )
@@ -226,9 +228,7 @@ def scenario_editor():
 
 def scenario_preview():
     data = st.session_state.data
-    if not openai_api_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
+    
     if st.button("Generate use case scenario"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         st.session_state.data["scenario"] = generate_scenario(seed)
@@ -265,11 +265,14 @@ def userstory_preview():
 
 with st.container():
     scenario_editor()
-    
-    with st.expander("Scenario"):
-        scenario_preview()
-    with st.expander("Storyboard"):
-        storyboard_preview()
-    with st.expander("User stories"):
-        userstory_preview()
+    if not openai_api_key:
+        st.info("Please add your OpenAI API key to continue.")
+        st.stop()
+    with st.container():
+        with st.expander("Scenario"):
+            scenario_preview()
+        with st.expander("Storyboard"):
+            storyboard_preview()
+        with st.expander("User stories"):
+            userstory_preview()
 
