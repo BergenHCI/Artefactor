@@ -30,6 +30,12 @@ The suggested scenario of use:
 
 Use numbered list for user stories."""
 
+_persona_prompt = """Create a persona (UX design) depicting a user based on the following data:
+
+The user is described as following: {user}
+The application solves the problem: {problem}
+The application description: {application}
+The context of use: {context}"""
 
 _scenario_prompt = """Create a realistic use case for the use of an application based on the following data:
 
@@ -48,6 +54,10 @@ For each step in the scenario, create a prompt for dall-e to generate a frame of
 In each step, include context, so dall-e would understand, what is needed.
 Return a numbered list of prompts without additional comments."""
 
+_persona_portrait_prompt = """Create a realistic illustration of a UX persona, based on the description:
+
+{persona}"""
+
 # prompts
 system_msg_use_cases = _system_msg_use_cases
 system_msg_user_stories = _system_msg_user_stories
@@ -59,13 +69,17 @@ gpt_model = "gpt-4-turbo-preview"
 
 user_stories_prompt = _user_stories_prompt
 scenario_prompt = _scenario_prompt
+persona_prompt = _persona_prompt
 dalle_prompt = _dalle_prompt
+persona_portrait_prompt = _persona_portrait_prompt
 
 
 def reset_data():
     data = {}
     data["app"] = {}
     data["scenario"] = ""
+    data["persona"] = ""
+    data["persona_portrait"] = ""
     data["storyboard"] = [] # ["desc": "Verbal description of what is happening", "url": "https"]
     st.session_state.data = data
     system_msg_use_cases = _system_msg_use_cases
@@ -73,14 +87,19 @@ def reset_data():
     dalle_prompt = _dalle_prompt
     scenario_prompt = _scenario_prompt
     user_stories_prompt = _user_stories_prompt
+    persona_prompt = _persona_prompt
+    persona_portrait_prompt = _persona_portrait_prompt
 
 
 with st.expander("AI settings"):
     system_msg_use_cases = st.text_input("Use cases GPT instruction", system_msg_use_cases)
     system_msg_user_stories = st.text_input("User stories GPT instruction", system_msg_user_stories)
-    scenario_prompt = st.text_area("Scenario prompt", scenario_prompt, 5)
+    persona_prompt = st.text_area("Persona prompt", persona_prompt, 5)
+    persona_portrait_prompt = st.text_area("Persona portrait prompt", persona_portrait_prompt, 5)
+    scenario_prompt = st.text_area("Scenario prompt", scenario_prompt, 5)    
     dalle_prompt = st.text_area("Dall-E prompt", dalle_prompt, 5)
     user_stories_prompt = st.text_area("User stories prompt", user_stories_prompt, 5)
+
 
 
 def extract_numerated_list(text:str):
@@ -115,13 +134,43 @@ def get_client():
 
 
 @st.cache_data(show_spinner="Generating..")
+def generate_persona(seed) -> str:
+    data = st.session_state.data
+    client = get_client()
+    user_desc = data["app"].get("user", "")
+    app_desc = data["app"].get("app", "")
+    problem = data["app"].get("problem", "")
+    context = data["app"].get("context", "")
+    if not user_desc:
+        st.error("Please provide user description")
+    if not problem:
+        st.error("Please describe the problem")
+    if not app_desc:
+        st.error("Please provide application description")
+    if not context:
+        st.error("Please describe the context of use")
+    if user_desc and app_desc and context:
+        message = persona_prompt.format(
+            user = user_desc, problem = problem, application = app_desc, context = context
+        )
+        messages=[
+            {"role": "system", "content": system_msg_use_cases},
+            {"role": "user", "content": message}
+        ]
+        response = client.chat.completions.create(model=gpt_model, messages=messages)
+        msg = response.choices[0].message.content
+        return msg
+    return ""
+
+
+@st.cache_data(show_spinner="Generating..")
 def generate_scenario(seed) -> str:
     data = st.session_state.data
     client = get_client()
-    user_desc = data["app"].get("user_desc")
-    app_desc = data["app"].get("app_desc")
-    problem = data["app"].get("problem")
-    context = data["app"].get("use_context")
+    user_desc = data["app"].get("user", "")
+    app_desc = data["app"].get("app", "")
+    problem = data["app"].get("problem", "")
+    context = data["app"].get("context", "")
     if not user_desc:
         st.error("Please provide user description")
     if not problem:
@@ -177,10 +226,10 @@ def generate_user_stories(seed) -> list:
         return []
     client = get_client()
 
-    user_desc = data["app"].get("user_desc", "")
-    app_desc = data["app"].get("app_desc", "")
+    user_desc = data["app"].get("user", "")
+    app_desc = data["app"].get("app", "")
     problem = data["app"].get("problem", "")
-    context = data["app"].get("use_context", "")
+    context = data["app"].get("context", "")
     user_stories_prompt = _user_stories_prompt
 
     message = user_stories_prompt.format(
@@ -209,7 +258,7 @@ def generate_storyboard(seed):
     # steps = extract_numerated_list(data["scenario"])
     for step in steps:
         img_url = generate_image(step)
-        storyboard.append({"desc": "", "url": img_url})
+        storyboard.append({"desc": step, "url": img_url})
     return storyboard
 
 
@@ -220,18 +269,29 @@ if "data" not in st.session_state:
 def scenario_editor():
     st.header("App and user details")
     data = st.session_state.data
-    data["app"]["user_desc"] = st.text_input("Who is the main user of the application?")
+    data["app"]["user"] = st.text_input("Who is the main user of the application?")
     data["app"]["problem"] = st.text_input("What problem does the application solve?")
-    data["app"]["app_desc"] = st.text_input("How does the application do it?")
-    data["app"]["use_context"] = st.text_input("In what context?")
+    data["app"]["app"] = st.text_input("How does the application do it?")
+    data["app"]["context"] = st.text_input("In what context?")
+
+def persona_preview():
+    data = st.session_state.data
+    if st.button("Generate user persona"):
+        seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
+        data["persona"] = generate_persona(seed)
+        # add portrait
+        data["persona_portrait"] = generate_image(persona_portrait_prompt.format(persona = data["persona"], **data["app"]))
+    if data["persona_portrait"]:
+        st.image(data["persona_portrait"], width=512)
+    if data["persona"]:
+        st.write(data["persona"])
 
 
 def scenario_preview():
     data = st.session_state.data
-    
     if st.button("Generate use case scenario"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
-        st.session_state.data["scenario"] = generate_scenario(seed)
+        data["scenario"] = generate_scenario(seed)
     if "scenario" in data:
         st.write(data["scenario"])
 
@@ -263,12 +323,15 @@ def userstory_preview():
     if "stories" in data:
         st.write(data["stories"])
 
+
 with st.container():
     scenario_editor()
     if not openai_api_key:
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
     with st.container():
+        with st.expander("Persona"):
+            persona_preview()
         with st.expander("Scenario"):
             scenario_preview()
         with st.expander("Storyboard"):
