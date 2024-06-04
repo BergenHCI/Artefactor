@@ -75,13 +75,11 @@ persona_portrait_prompt = _persona_portrait_prompt
 
 
 def reset_data():
-    data = {}
-    data["app"] = {}
-    data["scenario"] = ""
-    data["persona"] = ""
-    data["persona_portrait"] = ""
-    data["storyboard"] = [] # ["desc": "Verbal description of what is happening", "url": "https"]
-    st.session_state.data = data
+    st.session_state["app"] = {}
+    st.session_state["scenario"] = ""
+    st.session_state["persona"] = ""
+    st.session_state["persona_portrait"] = ""
+    st.session_state["storyboard"] = [] # ["desc": "Verbal description of what is happening", "url": "https"]
     system_msg_use_cases = _system_msg_use_cases
     system_msg_user_stories = _system_msg_user_stories
     dalle_prompt = _dalle_prompt
@@ -135,12 +133,12 @@ def get_client():
 
 @st.cache_data(show_spinner="Generating..")
 def generate_persona(seed) -> str:
-    data = st.session_state.data
+    data = st.session_state
     client = get_client()
-    user_desc = data["app"].get("user", "")
-    app_desc = data["app"].get("app", "")
-    problem = data["app"].get("problem", "")
-    context = data["app"].get("context", "")
+    user_desc = data.get("user", "")
+    app_desc = data.get("app", "")
+    problem = data.get("problem", "")
+    context = data.get("context", "")
     if not user_desc:
         st.error("Please provide user description")
     if not problem:
@@ -165,12 +163,12 @@ def generate_persona(seed) -> str:
 
 @st.cache_data(show_spinner="Generating..")
 def generate_scenario(seed) -> str:
-    data = st.session_state.data
+    data = st.session_state
     client = get_client()
-    user_desc = data["app"].get("user", "")
-    app_desc = data["app"].get("app", "")
-    problem = data["app"].get("problem", "")
-    context = data["app"].get("context", "")
+    user_desc = data.get("user", "")
+    app_desc = data.get("app", "")
+    problem = data.get("problem", "")
+    context = data.get("context", "")
     if not user_desc:
         st.error("Please provide user description")
     if not problem:
@@ -219,17 +217,17 @@ def generate_image(prompt:str):
 
 @st.cache_data(show_spinner="Generating..")
 def generate_user_stories(seed) -> list:
-    data = st.session_state.data
+    data = st.session_state
     scenario = data.get("scenario")
     if not scenario:
         st.error("Generate scenario first")
         return []
     client = get_client()
 
-    user_desc = data["app"].get("user", "")
-    app_desc = data["app"].get("app", "")
-    problem = data["app"].get("problem", "")
-    context = data["app"].get("context", "")
+    user_desc = data.get("user", "")
+    app_desc = data.get("app", "")
+    problem = data.get("problem", "")
+    context = data.get("context", "")
     user_stories_prompt = _user_stories_prompt
 
     message = user_stories_prompt.format(
@@ -246,7 +244,7 @@ def generate_user_stories(seed) -> list:
 
 @st.cache_data(show_spinner="Generating..")
 def generate_storyboard(seed):
-    data = st.session_state.data
+    data = st.session_state
     # find scenario
     storyboard = []
     scenario = data.get("scenario")
@@ -268,27 +266,26 @@ if "data" not in st.session_state:
 
 def scenario_editor():
     st.header("App and user details")
-    data = st.session_state.data
-    data["app"]["user"] = st.text_input("Who is the main user of the application?")
-    data["app"]["problem"] = st.text_input("What problem does the application solve?")
-    data["app"]["app"] = st.text_input("How does the application do it?")
-    data["app"]["context"] = st.text_input("In what context?")
+    # data = st.session_state
+    st.session_state["user"] = st.text_input("Who is the main user of the application?")
+    st.session_state["problem"] = st.text_input("What problem does the application solve?")
+    st.session_state["app"] = st.text_input("How does the application do it?")
+    st.session_state["context"] = st.text_input("In what context?")
 
 def persona_preview():
-    data = st.session_state.data
     if st.button("Generate user persona"):
-        seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
-        data["persona"] = generate_persona(seed)
+        seed = hashlib.sha256(str(sorted(st.session_state.items())).encode()).hexdigest()
+        st.session_state["persona"] = generate_persona(seed)
         # add portrait
-        data["persona_portrait"] = generate_image(persona_portrait_prompt.format(persona = data["persona"], **data["app"]))
-    if data["persona_portrait"]:
-        st.image(data["persona_portrait"], width=512)
-    if data["persona"]:
-        st.write(data["persona"])
+        st.session_state["persona_portrait"] = generate_image(persona_portrait_prompt.format(**st.session_state))
+    if "persona_portrait" in st.session_state:
+        st.image(st.session_state["persona_portrait"], width=512)
+    if "persona" in st.session_state:
+        st.write(st.session_state["persona"])
 
 
 def scenario_preview():
-    data = st.session_state.data
+    data = st.session_state
     if st.button("Generate use case scenario"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["scenario"] = generate_scenario(seed)
@@ -296,7 +293,7 @@ def scenario_preview():
         st.write(data["scenario"])
 
 def storyboard_preview():
-    data = st.session_state.data
+    data = st.session_state
     if st.button("Generate storyboard"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["storyboard"] = generate_storyboard(seed)
@@ -316,7 +313,7 @@ def storyboard_preview():
                         st.image(step["url"], caption=step["desc"])
 
 def userstory_preview():
-    data = st.session_state.data
+    data = st.session_state
     if st.button("Generate user stories"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["stories"] = generate_user_stories(seed)
