@@ -115,10 +115,12 @@ def extract_numerated_list(text:str):
     list_items = ["".join(match[1]).strip() for match in matches]
     return list_items
 
+openai_api_key = st.secrets["OPENAI_KEY"]
 
 with st.sidebar:
-    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
-    "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
+    if not openai_api_key:
+        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+        "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
     if st.button("Clear data"):
         reset_data()
         st.rerun()
