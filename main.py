@@ -121,6 +121,7 @@ with st.sidebar:
     if not openai_api_key:
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
+    GPT_MODEL = st.selectbox("GPT Model", ("gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"), index=1)
     if st.button("Clear data"):
         reset_data()
         st.rerun()
@@ -281,9 +282,9 @@ def persona_preview():
         st.session_state["persona"] = generate_persona(seed)
         # add portrait
         st.session_state["persona_portrait"] = generate_image(persona_portrait_prompt.format(**st.session_state))
-    if "persona_portrait" in st.session_state:
+    if st.session_state.get("persona_portrait"):
         st.image(st.session_state["persona_portrait"], width=512)
-    if "persona" in st.session_state:
+    if st.session_state.get("persona"):
         st.write(st.session_state["persona"])
 
 
@@ -292,7 +293,7 @@ def scenario_preview():
     if st.button("Generate use case scenario"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["scenario"] = generate_scenario(seed)
-    if "scenario" in data:
+    if data.get("scenario"):
         st.write(data["scenario"])
 
 def storyboard_preview():
@@ -300,7 +301,7 @@ def storyboard_preview():
     if st.button("Generate storyboard"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["storyboard"] = generate_storyboard(seed)
-    if "storyboard" in data:
+    if data.get("storyboard"):
         storyboard = copy.deepcopy(data["storyboard"])
         steps_count = len(storyboard)
         if steps_count % 3 == 0:
@@ -320,7 +321,7 @@ def userstory_preview():
     if st.button("Generate user stories"):
         seed = hashlib.sha256(str(sorted(data.items())).encode()).hexdigest()
         data["stories"] = generate_user_stories(seed)
-    if "stories" in data:
+    if data.get("stories"):
         st.write(data["stories"])
 
 
