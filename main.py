@@ -150,7 +150,7 @@ def generate_persona(seed) -> str:
         st.error("Please provide application description")
     # if not context:
     #     st.error("Please describe the context of use")
-    if user_desc and app_desc and context:
+    if user_desc and app_desc:
         message = persona_prompt.format(
             user = user_desc, problem = problem, application = app_desc, context = context
         )
@@ -179,7 +179,7 @@ def generate_scenario(seed) -> str:
         st.error("Please provide application description")
     # if not context:
     #    st.error("Please describe the context of use")
-    if user_desc and app_desc and context:
+    if user_desc and app_desc:
         message = scenario_prompt.format(
             user = user_desc, problem = problem, application = app_desc, context = context
         )
@@ -247,8 +247,7 @@ def generate_user_stories(seed) -> list:
 def generate_storyboard(seed):
     # find scenario
     storyboard = []
-    scenario = st.session_state.get("scenario")
-    if not scenario:
+    if not st.session_state.get("scenario"):
         st.error("No scenario")
         return storyboard
     # get prompts for dall-e
@@ -260,16 +259,13 @@ def generate_storyboard(seed):
     return storyboard
 
 
-if "data" not in st.session_state:
-    reset_data()
-
-
 def scenario_editor():
     st.header("App and user details")
     st.session_state["user"] = st.text_input("Who is the main user of the application?")
     st.session_state["problem"] = st.text_input("What problem does the application solve?")
     st.session_state["app"] = st.text_input("How does the application do it?")
     st.session_state["context"] = st.text_input("In what context?")
+
 
 def persona_preview():
     if st.button("Generate user persona"):
@@ -290,6 +286,7 @@ def scenario_preview():
     if st.session_state.get("scenario"):
         st.write(st.session_state["scenario"])
 
+
 def storyboard_preview():
     if st.button("Generate storyboard"):
         seed = hashlib.sha256(str(sorted(st.session_state.items())).encode()).hexdigest()
@@ -308,6 +305,7 @@ def storyboard_preview():
                     step = storyboard and storyboard.pop(0) or None
                     if step:
                         st.image(step["url"], caption=step["desc"])
+
 
 def userstory_preview():
     st.session_state = st.session_state
