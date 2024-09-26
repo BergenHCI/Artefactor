@@ -65,7 +65,8 @@ system_msg_user_stories = _system_msg_user_stories
 prompt_storyboard = _prompt_storyboard
 
 
-gpt_model = "gpt-4-turbo-preview"
+GPT_MODEL = "gpt-4o-mini"
+
 
 user_stories_prompt = _user_stories_prompt
 scenario_prompt = _scenario_prompt
@@ -155,7 +156,7 @@ def generate_persona(seed) -> str:
             {"role": "system", "content": system_msg_use_cases},
             {"role": "user", "content": message}
         ]
-        response = client.chat.completions.create(model=gpt_model, messages=messages)
+        response = client.chat.completions.create(model=GPT_MODEL, messages=messages)
         msg = response.choices[0].message.content
         return msg
     return ""
@@ -185,7 +186,7 @@ def generate_scenario(seed) -> str:
             {"role": "system", "content": system_msg_use_cases},
             {"role": "user", "content": message}
         ]
-        response = client.chat.completions.create(model=gpt_model, messages=messages)
+        response = client.chat.completions.create(model=GPT_MODEL, messages=messages)
         msg = response.choices[0].message.content
         return msg
     return ""
@@ -197,7 +198,7 @@ def generate_dalle_prompts(scenario:str):
             {"role": "system", "content": system_msg_use_cases},
             {"role": "user", "content": dalle_prompt.format(scenario = scenario)}
         ]
-    response = client.chat.completions.create(model=gpt_model, messages=messages)
+    response = client.chat.completions.create(model=GPT_MODEL, messages=messages)
     msg = response.choices[0].message.content
     return extract_numerated_list(msg)
 
@@ -237,7 +238,7 @@ def generate_user_stories(seed) -> list:
         {"role": "system", "content": system_msg_user_stories},
         {"role": "user", "content": message}
     ]
-    response = client.chat.completions.create(model=gpt_model, messages=messages)
+    response = client.chat.completions.create(model=GPT_MODEL, messages=messages)
     msg = response.choices[0].message.content
     return msg
 
