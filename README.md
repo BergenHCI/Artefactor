@@ -1,0 +1,1 @@
+Artefactor is an AI-powered prototyping tool that illustrates the concept of "Declarative Design" - it creates Personas, User Stories and other artefacts based on provided description. In this approach, designers articulate their goals and constraits, focusing on **what** should be designed, and not **how**. 
