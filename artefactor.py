@@ -65,9 +65,6 @@ system_msg_user_stories = _system_msg_user_stories
 prompt_storyboard = _prompt_storyboard
 
 
-GPT_MODEL = "gpt-4o-mini"
-
-
 user_stories_prompt = _user_stories_prompt
 scenario_prompt = _scenario_prompt
 persona_prompt = _persona_prompt
@@ -115,23 +112,24 @@ def extract_numerated_list(text:str):
     list_items = ["".join(match[1]).strip() for match in matches]
     return list_items
 
-openai_api_key = st.secrets["OPENAI_KEY"]
+GPT_MODEL = st.secrets["GPT_MODEL"]
+OPENAI_KEY = st.secrets["OPENAI_KEY"]
 
 with st.sidebar:
-    if not openai_api_key:
-        openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
+    if not OPENAI_KEY:
+        OPENAI_KEY = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         "[Get an OpenAI API key](https://platform.openai.com/account/api-keys)"
-    GPT_MODEL = st.selectbox("GPT Model", ("gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"), index=1)
+    # GPT_MODEL = st.selectbox("GPT Model", ("gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"), index=1)
     if st.button("Clear data"):
         reset_data()
         st.rerun()
 
 @st.cache_resource
 def get_client():
-    if not openai_api_key:
+    if not OPENAI_KEY:
         st.error("Please provide Open AI API key first")
         st.stop()
-    client = OpenAI(api_key=openai_api_key)
+    client = OpenAI(api_key=OPENAI_KEY)
     return client
 
 
@@ -272,9 +270,9 @@ def persona_preview():
         seed = hashlib.sha256(str(sorted(st.session_state.items())).encode()).hexdigest()
         st.session_state["persona"] = generate_persona(seed)
         # add portrait
-        st.session_state["persona_portrait"] = generate_image(persona_portrait_prompt.format(**st.session_state))
-    if st.session_state.get("persona_portrait"):
-        st.image(st.session_state["persona_portrait"], width=512)
+        # st.session_state["persona_portrait"] = generate_image(persona_portrait_prompt.format(**st.session_state))
+    #if st.session_state.get("persona_portrait"):
+    #    st.image(st.session_state["persona_portrait"], width=512)
     if st.session_state.get("persona"):
         st.write(st.session_state["persona"])
 
@@ -318,7 +316,7 @@ def userstory_preview():
 
 with st.container():
     scenario_editor()
-    if not openai_api_key:
+    if not OPEN_AI_KEY:
         st.info("Please add your OpenAI API key to continue.")
         st.stop()
     with st.container():
